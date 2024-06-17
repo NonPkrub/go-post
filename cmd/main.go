@@ -19,6 +19,7 @@ import (
 // It initializes the database, creates the necessary repositories,
 // services, and handlers, and starts the HTTP server.
 func main() {
+	initConfig()
 	db := initDatabase()
 
 	postRepository := repositories.NewPostRepository(db)
@@ -56,7 +57,7 @@ func initDatabase() *sqlx.DB {
 func initConfig() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath("..")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
