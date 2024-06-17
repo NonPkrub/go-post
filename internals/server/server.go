@@ -20,9 +20,9 @@ func NewServer(postHandler ports.PostHandler) *Server {
 
 func (s *Server) Initialize() {
 	app := fiber.New()
-	v1 := app.Group("/v1")
+	v1 := app.Group("/api/v1")
 
-	postGroup := v1.Group("/posts")
+	postGroup := v1.Group("posts")
 	{
 		postGroup.Post("create", s.postHandler.Create)
 		postGroup.Get("all", s.postHandler.GetAll)

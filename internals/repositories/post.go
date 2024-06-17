@@ -73,7 +73,7 @@ func (r *postRepository) FindAllField(query *domain.PostAllReq, pagination *doma
 
 	for rows.Next() {
 		post := &domain.Post{}
-		err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.CreatedAt, &post.Published)
+		err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.Published, &post.ViewCount, &post.CreatedAt, &post.UpdatedAt, &post.DeletedAt)
 		if err != nil {
 			return nil, 0, 0, err
 		}
