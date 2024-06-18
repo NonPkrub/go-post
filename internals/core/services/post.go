@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go-test/internals/core/domain"
 	"go-test/internals/core/ports"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -32,13 +33,14 @@ func (s *PostService) Create(post *domain.PostReq) (*domain.PostRes, error) {
 	if err != nil {
 		return nil, err
 	}
+	createdAt, _ := time.Parse("2006-01-02T15:04:05", result.CreatedAt.Format("2006-01-02T15:04:05"))
 
 	res := &domain.PostRes{
 		ID:        result.ID,
 		Title:     result.Title,
 		Content:   *result.Content,
 		Published: *result.Published,
-		CreatedAt: result.CreatedAt,
+		CreatedAt: createdAt,
 	}
 
 	return res, nil
@@ -56,12 +58,14 @@ func (s *PostService) UpdateByID(post *domain.PostUpdateReq) (*domain.PostRes, e
 	if err != nil {
 		return nil, err
 	}
+	createdAt, _ := time.Parse("2006-01-02T15:04:05", res.CreatedAt.Format("2006-01-02T15:04:05"))
 
 	return &domain.PostRes{
 		ID:        res.ID,
 		Title:     res.Title,
 		Content:   *res.Content,
 		Published: *res.Published,
+		CreatedAt: createdAt,
 	}, nil
 }
 
@@ -80,11 +84,14 @@ func (s *PostService) GetAll(query *domain.PostAllReq, pagination *domain.Pagina
 	}
 
 	for i, post := range res {
+		createdAt, _ := time.Parse("2006-01-02T15:04:05", post.CreatedAt.Format("2006-01-02T15:04:05"))
+
 		response.Posts[i] = domain.PostRes{
 			ID:        post.ID,
 			Title:     post.Title,
 			Content:   *post.Content,
 			Published: *post.Published,
+			CreatedAt: createdAt,
 		}
 	}
 
@@ -98,20 +105,23 @@ func (s *PostService) GetByID(id string) (*domain.PostRes, error) {
 		return nil, err
 	}
 
-	postID := &domain.Post{
-		ID: uuid,
-	}
+	post := &domain.Post{}
+	post.ID = uuid
 
-	res, err := s.postRepository.FindOne(postID)
+	res, err := s.postRepository.FindOne(post)
 	if err != nil {
 		return nil, err
 	}
+
+	published := *res.Published
+	createdAt, _ := time.Parse("2006-01-02T15:04:05", res.CreatedAt.Format("2006-01-02T15:04:05"))
 
 	return &domain.PostRes{
 		ID:        res.ID,
 		Title:     res.Title,
 		Content:   *res.Content,
-		Published: *res.Published,
+		Published: published,
+		CreatedAt: createdAt,
 	}, nil
 
 }

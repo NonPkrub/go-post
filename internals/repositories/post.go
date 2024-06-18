@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-test/internals/core/domain"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -17,14 +18,8 @@ func NewPostRepository(db *sqlx.DB) *postRepository {
 }
 
 func (r *postRepository) Create(post *domain.Post) (*domain.Post, error) {
-	query := "insert into posts ( title, content,) values ( $1, $2) RETURNING id"
-	// _, err := r.db.Exec(query, post.Title, post.Content)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return post, nil
-	err := r.db.QueryRow(query, post.Title, post.Content).Scan(&post.ID)
+	query := "insert into post ( title, content) values ( $1, $2) RETURNING id, published,created_at"
+	err := r.db.QueryRow(query, post.Title, post.Content).Scan(&post.ID, &post.Published, &post.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -36,23 +31,27 @@ func (r *postRepository) FindAllField(query *domain.PostAllReq, pagination *doma
 	posts := []*domain.Post{}
 	var totalCount int64
 
-	querySQL := "SELECT * FROM posts WHERE 1=1"
+	querySQL := "SELECT * FROM posts WHERE 1=1 AND deleted_at IS NULL"
 	args := []interface{}{}
+	argIndex := 1
 
 	if query != nil {
 		if query.Title != "" {
-			querySQL += " AND title = $1"
+			querySQL += fmt.Sprintf(" AND title = $%d", argIndex)
 			args = append(args, query.Title)
+			argIndex++
 		}
 
 		if !query.CreatedAt.IsZero() {
-			querySQL += " AND created_at = $2"
+			querySQL += fmt.Sprintf(" AND created_at >= timezone('UTC', $%d)", argIndex)
 			args = append(args, query.CreatedAt)
+			argIndex++
 		}
 
 		if query.Published != nil {
-			querySQL += " AND published = $3"
+			querySQL += fmt.Sprintf(" AND published = $%d", argIndex)
 			args = append(args, query.Published)
+			argIndex++
 		}
 	}
 
@@ -86,53 +85,58 @@ func (r *postRepository) FindAllField(query *domain.PostAllReq, pagination *doma
 
 	totalPages := (totalCount + int64(pagination.PageSize) - 1) / int64(pagination.PageSize)
 
-	return nil, totalCount, totalPages, nil
+	return posts, totalCount, totalPages, nil
 }
 
 func (r *postRepository) FindOne(post *domain.Post) (*domain.Post, error) {
-	querySQL := "SELECT * FROM posts WHERE where id = $1"
-	err := r.db.Get(post, querySQL, post.ID)
+	querySQL := "SELECT id, title, content, published, view_count, created_at, updated_at, deleted_at FROM posts WHERE id = $1 AND deleted_at IS NULL"
+	var postSQL domain.Post
+	err := r.db.Get(&postSQL, querySQL, post.ID)
 	if err != nil {
 		return nil, err
 	}
-	if *post.Published == true {
-		*post.ViewCount += 1
-		querySQL = "UPDATE posts SET view_count=$1 WHERE id=$2 AND published = true"
-		_, err := r.db.Exec(querySQL, post.ViewCount, post.ID)
+
+	if *postSQL.Published == true {
+		postSQL.ViewCount += 1
+		querySQL = "UPDATE post SET view_count=$1 WHERE id=$2 AND published = true AND deleted_at IS NULL"
+		_, err := r.db.Exec(querySQL, postSQL.ViewCount, postSQL.ID)
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
-	return post, nil
+	return &postSQL, nil
 }
 
 func (r *postRepository) UpdateByID(post *domain.Post) (*domain.Post, error) {
 	var fields []string
 	var args []interface{}
+	argIndex := 1
 
 	if post.Title != "" {
-		fields = append(fields, "title = $1")
+		fields = append(fields, fmt.Sprintf("title = $%d", argIndex))
 		args = append(args, post.Title)
 	}
 
-	if post.Content != nil {
-		fields = append(fields, "content = $2")
-		args = append(args, post.Content)
+	if post.Content != nil && *post.Content != "" {
+		fields = append(fields, fmt.Sprintf("content = $%d", argIndex))
+		args = append(args, *post.Content)
 	}
 
 	if post.Published != nil {
-		fields = append(fields, "published = $3")
-		args = append(args, post.Published)
+		fields = append(fields, fmt.Sprintf("published = $%d", argIndex))
+		args = append(args, *post.Published)
 	}
 
-	if post.ViewCount != nil {
-		fields = append(fields, "view_count = $4")
+	if post.ViewCount != 0 {
+		fields = append(fields, fmt.Sprintf("view_count = $%d", argIndex))
 		args = append(args, post.ViewCount)
 	}
 
-	query := fmt.Sprintf("UPDATE posts SET %s WHERE id = $5", strings.Join(fields, ", "))
+	args = append(args, post.ID)
+
+	query := fmt.Sprintf("UPDATE posts SET %s WHERE id = $%d AND deleted_at IS NULL", strings.Join(fields, ", "), len(args))
+
 	_, err := r.db.Exec(query, args...)
 	if err != nil {
 		return nil, err
@@ -147,8 +151,9 @@ func (r *postRepository) UpdateByID(post *domain.Post) (*domain.Post, error) {
 }
 
 func (r *postRepository) DeleteByID(post *domain.Post) error {
-	query := "DELETE FROM posts WHERE id = $1"
-	_, err := r.db.Exec(query, post.ID)
+	query := "UPDATE posts SET deleted_at = $1 WHERE id = $2"
+	now := time.Now()
+	_, err := r.db.Exec(query, now, post.ID)
 	if err != nil {
 		return err
 	}

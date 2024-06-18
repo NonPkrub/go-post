@@ -74,8 +74,8 @@ func (h *PostHandler) GetAll(c *fiber.Ctx) error {
 
 	title := c.Query("title", "")
 
-	location, _ := time.LoadLocation("Asia/Bangkok")
 	createdAtStr := c.Query("created_at", "")
+	location, _ := time.LoadLocation("Asia/Bangkok")
 	var createdAt time.Time
 	if createdAtStr != "" {
 		var err error
@@ -87,6 +87,7 @@ func (h *PostHandler) GetAll(c *fiber.Ctx) error {
 		}
 
 	}
+
 	reqParams := domain.PostAllReq{
 		Published: published,
 		Title:     title,
