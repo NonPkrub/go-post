@@ -9,17 +9,17 @@ import (
 	"github.com/google/uuid"
 )
 
-type PostService struct {
+type postService struct {
 	postRepository ports.PostRepository
 }
 
-func NewPostService(postRepository ports.PostRepository) *PostService {
-	return &PostService{
+func NewPostService(postRepository ports.PostRepository) *postService {
+	return &postService{
 		postRepository: postRepository,
 	}
 }
 
-func (s *PostService) Create(post *domain.PostReq) (*domain.PostRes, error) {
+func (s *postService) Create(post *domain.PostReq) (*domain.PostRes, error) {
 	if post.Title == "" {
 		return nil, errors.New("title is required")
 	}
@@ -46,7 +46,7 @@ func (s *PostService) Create(post *domain.PostReq) (*domain.PostRes, error) {
 	return res, nil
 }
 
-func (s *PostService) UpdateByID(post *domain.PostUpdateReq) (*domain.PostRes, error) {
+func (s *postService) UpdateByID(post *domain.PostUpdateReq) (*domain.PostRes, error) {
 	posts := &domain.Post{
 		ID:        post.ID,
 		Title:     post.Title,
@@ -69,7 +69,7 @@ func (s *PostService) UpdateByID(post *domain.PostUpdateReq) (*domain.PostRes, e
 	}, nil
 }
 
-func (s *PostService) GetAll(query *domain.PostAllReq, pagination *domain.Pagination) (*domain.PostResponse, error) {
+func (s *postService) GetAll(query *domain.PostAllReq, pagination *domain.Pagination) (*domain.PostResponse, error) {
 	res, count, totalPage, err := s.postRepository.FindAllField(query, pagination)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (s *PostService) GetAll(query *domain.PostAllReq, pagination *domain.Pagina
 
 }
 
-func (s *PostService) GetByID(id string) (*domain.PostRes, error) {
+func (s *postService) GetByID(id string) (*domain.PostRes, error) {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (s *PostService) GetByID(id string) (*domain.PostRes, error) {
 
 }
 
-func (s *PostService) DeleteByID(id string) error {
+func (s *postService) DeleteByID(id string) error {
 	uuid, err := uuid.Parse(id)
 	if err != nil {
 		return err
