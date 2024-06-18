@@ -111,7 +111,7 @@ func (h *PostHandler) GetByID(c *fiber.Ctx) error {
 	res, err := h.postService.GetByID(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": err.Error(),
+			"message": "posts not found",
 		})
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
