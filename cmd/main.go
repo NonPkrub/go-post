@@ -57,7 +57,7 @@ func initDatabase() *sqlx.DB {
 func initConfig() {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("..")
+	viper.AddConfigPath("./")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
